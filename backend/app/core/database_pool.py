@@ -15,8 +15,16 @@ class DatabasePool:
         """Initialize database connection pool"""
         try:
             # Create async engine with connection pooling
-            database_url = f"postgresql+asyncpg://{settings.supabase_db_user}:{settings.supabase_db_password}@{settings.supabase_db_host}:{settings.supabase_db_port}/{settings.supabase_db_name}"
-            
+            # Derive the asyncpg URL from settings.database_url (the
+            # supabase_db_* fields referenced here previously don't exist on
+            # Settings, so this always raised AttributeError and silently
+            # fell back to mock data - see fix(db) commit).
+            database_url = settings.database_url
+            if database_url.startswith("postgresql://"):
+                database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            elif database_url.startswith("postgres://"):
+                database_url = database_url.replace("postgres://", "postgresql+asyncpg://", 1)
+
             self.engine = create_async_engine(
                 database_url,
                 poolclass=QueuePool,
